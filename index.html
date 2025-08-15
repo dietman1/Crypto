@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>مقایسه قیمت Nobitex و Wallex</title>
+  <style>
+    body { font-family: Tahoma; background: #f5f5f5; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,.1); }
+    .row { margin: 10px 0; }
+    input, button { padding: 8px; font-size: 14px; }
+    .alert { background: red; color: white; padding: 10px; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>مقایسه قیمت بین Nobitex و Wallex</h2>
+    <div class="row">
+      <label>نماد: <input id="symbol" value="BTCUSDT"></label>
+    </div>
+    <div class="row">
+      <label>آستانه هشدار (%): <input id="threshold" type="number" value="10"></label>
+    </div>
+    <div class="row">
+      <button id="startBtn">شروع</button>
+      <button id="stopBtn" disabled>توقف</button>
+    </div>
+    <div class="row" id="prices">
+      Nobitex: -- | Wallex: -- | اختلاف: --%
+    </div>
+    <div id="alert" class="alert">🚨 اختلاف قیمت بالاست 🚨</div>
+    <audio id="alarm"><source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg"></audio>
+  </div>
+
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+  let timer = null;
+  const apiBase = "https://your-vercel-url.vercel.app/api/prices";
+
+  async function tick() {
+    const symbol = el("symbol").value.trim().toUpperCase();
+    const threshold = parseFloat(el("threshold").value) || 10;
+    try {
+      const r = await fetch(`${apiBase}?symbol=${symbol}`);
+      const data = await r.json();
+      const nobi = data.nobitex;
+      const wal = data.wallex;
+      const diffPct = Math.abs(nobi - wal) / ((nobi + wal) / 2) * 100;
+      el("prices").textContent = `Nobitex: ${nobi} | Wallex: ${wal} | اختلاف: ${diffPct.toFixed(2)}%`;
+
+      if (diffPct >= threshold) {
+        el("alert").style.display = "block";
+        el("alarm").play().catch(() => {});
+      } else {
+        el("alert").style.display = "none";
+      }
+    } catch (e) {
+      el("prices").textContent = "خطا در دریافت قیمت";
+      console.error(e);
+    }
+  }
+
+  el("startBtn").onclick = () => {
+    tick();
+    timer = setInterval(tick, 5000);
+    el("startBtn").disabled = true;
+    el("stopBtn").disabled = false;
+  };
+  el("stopBtn").onclick = () => {
+    clearInterval(timer);
+    el("startBtn").disabled = false;
+    el("stopBtn").disabled = true;
+  };
+})();
+</script>
+</body>
+</html>
